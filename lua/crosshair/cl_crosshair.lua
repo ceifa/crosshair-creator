@@ -164,8 +164,10 @@ function CH:DrawCrosshair()
 end
 
 hook.Add("HUDPaint", "DrawCustomCrosshair", function()
+    local client = LocalPlayer()
+
     -- Is able to draw crosshair
-    if LocalPlayer():Health() > 0 and not LocalPlayer():KeyDown(IN_ATTACK2) then
+    if IsValid(client) and client:Health() > 0 and not client:KeyDown(IN_ATTACK2) then
         CH:DrawCrosshair()
     end
 end)
