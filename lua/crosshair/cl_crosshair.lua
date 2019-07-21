@@ -29,9 +29,7 @@ function CH:OpenCrosshairCreator()
     local panel = vgui.Create("DPanel", frame)
     panel:SetSize(frame:GetWide() - 8, frame:GetTall() - 44)
     panel:SetPos(4, 32)
-
-    function panel:Paint()
-    end
+    panel.Paint = self.Empty
 
     local crosshair = vgui.Create("DPanel", panel)
     crosshair:SetSize(panel:GetWide() / 2 - 2, panel:GetTall())
@@ -40,15 +38,8 @@ function CH:OpenCrosshairCreator()
     crosshair.Paint = function(s, w, h)
         surface.SetDrawColor(0, 0, 0, 100)
         surface.DrawRect(0, 0, w, h)
-        local thick = self.XHairThickness:GetInt()
-        local gap = self.XHairGap:GetInt()
-        local size = self.XHairSize:GetInt()
-        -- TODO: Pass it to a function (ref #1)
-        surface.SetDrawColor(self.XHairRed:GetInt(), self.XHairGreen:GetInt(), self.XHairBlue:GetInt(), self.XHairAlpha:GetInt())
-        surface.DrawRect(w / 2 - (thick / 2), h / 2 - (size + gap / 2), thick, size)
-        surface.DrawRect(w / 2 - (thick / 2), h / 2 + (gap / 2), thick, size)
-        surface.DrawRect(w / 2 + (gap / 2), h / 2 - (thick / 2), size, thick)
-        surface.DrawRect(w / 2 - (size + gap / 2), h / 2 - (thick / 2), size, thick)
+
+        self:DrawCrosshair(w / 2, h / 2)
     end
 
     local controls = vgui.Create("DPanel", panel)
@@ -148,14 +139,14 @@ function CH:Update()
     self.Updated = true
 end
 
-function CH:DrawCrosshair()
-    local x, y = ScrW() / 2, ScrH() / 2
+function CH:DrawCrosshair(x, y)
+    x = x or ScrW() / 2
+    y = y or ScrH() / 2
 
     if not self.Updated then
         self:Update()
     end
 
-    -- TODO: Pass it to a function (ref #1)
     surface.SetDrawColor(self.XHairRedValue, self.XHairGreenValue, self.XHairBlueValue, self.XHairAlphaValue)
     surface.DrawRect(x - (self.XHairThicknessValue / 2), y - (self.XHairSizeValue + self.XHairGapValue / 2), self.XHairThicknessValue, self.XHairSizeValue)
     surface.DrawRect(x - (self.XHairThicknessValue / 2), y + (self.XHairGapValue / 2), self.XHairThicknessValue, self.XHairSizeValue)
