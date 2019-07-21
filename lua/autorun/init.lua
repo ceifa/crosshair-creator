@@ -1,4 +1,3 @@
-AddCSLuaFile()
 AddCSLuaFile("crosshair/cl_crosshair.lua")
 
 if CLIENT then
