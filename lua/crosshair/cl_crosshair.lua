@@ -1,10 +1,7 @@
-surface.CreateFont(
-    "MersRadialMedium",
-    {
-        font = "coolvetica",
-        size = math.ceil(ScrW() / 50)
-    }
-)
+surface.CreateFont("MersRadialMedium", {
+    font = "coolvetica",
+    size = math.ceil(ScrW() / 50)
+})
 
 CH = {}
 CH.SliderTextColor = Color(200, 200, 200)
@@ -23,6 +20,7 @@ function CH:OpenCrosshairCreator()
     frame:MakePopup()
     frame:SetTitle("Crosshair Creator")
     frame.backgroundColor = Color(40, 40, 40)
+
     function frame:Paint()
         surface.SetDrawColor(self.backgroundColor)
         surface.DrawRect(0, 0, self:GetWide(), self:GetTall())
@@ -31,27 +29,22 @@ function CH:OpenCrosshairCreator()
     local panel = vgui.Create("DPanel", frame)
     panel:SetSize(frame:GetWide() - 8, frame:GetTall() - 44)
     panel:SetPos(4, 32)
+
     function panel:Paint()
     end
 
     local crosshair = vgui.Create("DPanel", panel)
     crosshair:SetSize(panel:GetWide() / 2 - 2, panel:GetTall())
     crosshair:SetPos(0, 0)
+
     crosshair.Paint = function(s, w, h)
         surface.SetDrawColor(0, 0, 0, 100)
         surface.DrawRect(0, 0, w, h)
-
         local thick = self.XHairThickness:GetInt()
         local gap = self.XHairGap:GetInt()
         local size = self.XHairSize:GetInt()
-
         -- TODO: Pass it to a function (ref #1)
-        surface.SetDrawColor(
-            self.XHairRed:GetInt(),
-            self.XHairGreen:GetInt(),
-            self.XHairBlue:GetInt(),
-            self.XHairAlpha:GetInt()
-        )
+        surface.SetDrawColor(self.XHairRed:GetInt(), self.XHairGreen:GetInt(), self.XHairBlue:GetInt(), self.XHairAlpha:GetInt())
         surface.DrawRect(w / 2 - (thick / 2), h / 2 - (size + gap / 2), thick, size)
         surface.DrawRect(w / 2 - (thick / 2), h / 2 + (gap / 2), thick, size)
         surface.DrawRect(w / 2 + (gap / 2), h / 2 - (thick / 2), size, thick)
@@ -62,6 +55,7 @@ function CH:OpenCrosshairCreator()
     controls:SetSize(panel:GetWide() / 2 - 2, panel:GetTall())
     controls:SetPos(panel:GetWide() - controls:GetWide(), 0)
     controls.color = Color(50, 50, 50)
+
     function controls:Paint(w, h)
         surface.SetDrawColor(self.color)
         surface.DrawRect(0, 0, w, h)
@@ -70,17 +64,19 @@ function CH:OpenCrosshairCreator()
     local scrollPanel = vgui.Create("DScrollPanel", controls)
     scrollPanel:SetSize(controls:GetWide() - 16, controls:GetTall() - 16)
     scrollPanel:SetPos(8, 8)
-
     local vbar = scrollPanel:GetVBar()
     vbar:SetWide(4)
     vbar.color = ColorAlpha(color_black, 100)
+
     function vbar:Paint(w, h)
         surface.SetDrawColor(self.color)
         surface.DrawRect(0, 0, w, h)
     end
+
     vbar.btnUp.Paint = self.Empty
     vbar.btnDown.Paint = self.Empty
     vbar.btnGrip.color = ColorAlpha(color_white, 200)
+
     function vbar.btnGrip:Paint(w, h)
         surface.SetDrawColor(self.color)
         surface.DrawRect(0, 0, w, h)
@@ -91,7 +87,6 @@ function CH:OpenCrosshairCreator()
     list:SetPos(0, 0)
     list:SetSpaceX(0)
     list:SetSpaceY(4)
-
     self:AddHeaderToList(list, "Dimensões da crosshair")
     self:AddSliderConvarToList(list, "Espessura do traço", 0, 16, "crosshair_thickness")
     self:AddSliderConvarToList(list, "Abertura interna", 0, 32, "crosshair_gap")
@@ -110,12 +105,12 @@ function CH:AddSliderConvarToList(list, text, min, max, convar)
     label:SizeToContents()
     label:SetWide(list:GetWide())
     list:Add(label)
-
     local slider = vgui.Create("Slider")
     slider:SetMin(min)
     slider:SetMax(max)
     slider:SetWide(list:GetWide())
     slider:SetValue(GetConVar(convar):GetFloat())
+
     slider.OnValueChanged = function(s, value)
         RunConsoleCommand(convar, value)
         self:Update()
@@ -130,7 +125,6 @@ function CH:AddHeaderToList(list, text)
     space:SetTall(12)
     space.Paint = self.Empty
     list:Add(space)
-
     local label = vgui.Create("DLabel")
     label:SetFont("MersRadialMedium")
     label:SetTextColor(color_white)
@@ -151,7 +145,6 @@ function CH:Update()
     self.XHairGreenValue = self.XHairGreen:GetInt()
     self.XHairBlueValue = self.XHairBlue:GetInt()
     self.XHairAlphaValue = self.XHairAlpha:GetInt()
-
     self.Updated = true
 end
 
@@ -177,9 +170,9 @@ hook.Add("HUDPaint", "DrawCustomCrosshair", function()
     end
 end)
 
-hook.Add( "HUDShouldDraw", "HideHUD", function(name)
+hook.Add("HUDShouldDraw", "HideHUD", function(name)
     -- Never return true here unless you have a reason
-	if name == "CHudCrosshair" then return false end
+    if name == "CHudCrosshair" then return false end
 end)
 
 concommand.Add("open_crosshair_menu", function()
