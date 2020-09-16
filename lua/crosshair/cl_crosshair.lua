@@ -1,17 +1,12 @@
-surface.CreateFont("MersRadialMedium", {
-    font = "coolvetica",
-    size = math.ceil(ScrW() / 50)
-})
+-- TODO: Make some things local
+-- TODO: Add config to see other players crosshair
 
 CH = {}
 CH.SliderTextColor = Color(200, 200, 200)
 CH.XHairThickness = CreateClientConVar("crosshair_thickness", 2, true, false)
 CH.XHairGap = CreateClientConVar("crosshair_gap", 8, true, false)
 CH.XHairSize = CreateClientConVar("crosshair_size", 8, true, false)
-CH.XHairRed = CreateClientConVar("crosshair_red", 255, true, false)
-CH.XHairGreen = CreateClientConVar("crosshair_green", 255, true, false)
-CH.XHairBlue = CreateClientConVar("crosshair_blue", 255, true, false)
-CH.XHairAlpha = CreateClientConVar("crosshair_alpha", 255, true, false)
+CH.XHairColor = CreateClientConVar("crosshair_color", string.FromColor(color_white), true, false)
 
 function CH:OpenCrosshairCreator()
     local frame = vgui.Create("DFrame")
@@ -78,32 +73,31 @@ function CH:OpenCrosshairCreator()
     list:SetPos(0, 0)
     list:SetSpaceX(0)
     list:SetSpaceY(4)
-    self:AddHeaderToList(list, "Dimensões da crosshair")
+
+    self:AddHeaderToList(list, "Dimensões")
     self:AddSliderConvarToList(list, "Espessura do traço", 0, 16, "crosshair_thickness")
     self:AddSliderConvarToList(list, "Abertura interna", 0, 32, "crosshair_gap")
     self:AddSliderConvarToList(list, "Tamanho do traço", 0, 32, "crosshair_size")
-    self:AddHeaderToList(list, "Cores da crosshair")
-    self:AddSliderConvarToList(list, "Vermelho", 0, 255, "crosshair_red")
-    self:AddSliderConvarToList(list, "Verde", 0, 255, "crosshair_green")
-    self:AddSliderConvarToList(list, "Azul", 0, 255, "crosshair_blue")
-    self:AddSliderConvarToList(list, "Transparência", 0, 255, "crosshair_alpha")
+
+    self:AddHeaderToList(list, "Cores")
+    local colorChooser = vgui.Create("DColorCombo")
+    colorChooser:SetWide(list:GetWide() - 8)
+    colorChooser.OnValueChanged = function(s, color)
+        RunConsoleCommand("crosshair_color", string.FromColor(color))
+        self:Update()
+    end
+    list:Add(colorChooser)
 end
 
 function CH:AddSliderConvarToList(list, text, min, max, convar)
-    local label = vgui.Create("DLabel")
-    label:SetTextColor(self.SliderTextColor)
-    label:SetText(text)
-    label:SizeToContents()
-    label:SetWide(list:GetWide())
-    list:Add(label)
-    local slider = vgui.Create("Slider")
-    slider:SetMin(min)
-    slider:SetMax(max)
+    local slider = vgui.Create("DNumSlider")
+    slider:SetText(text)
+    slider:SetMinMax(min, max)
     slider:SetWide(list:GetWide())
-    slider:SetValue(GetConVar(convar):GetFloat())
+    slider:SetConVar(convar)
+    slider:SetDark(false)
 
     slider.OnValueChanged = function(s, value)
-        RunConsoleCommand(convar, value)
         self:Update()
     end
 
@@ -116,8 +110,9 @@ function CH:AddHeaderToList(list, text)
     space:SetTall(12)
     space.Paint = self.Empty
     list:Add(space)
+
     local label = vgui.Create("DLabel")
-    label:SetFont("MersRadialMedium")
+    label:SetFont("DermaLarge")
     label:SetTextColor(color_white)
     label:SetText(text)
     label:SizeToContents()
@@ -132,10 +127,7 @@ function CH:Update()
     self.XHairThicknessValue = self.XHairThickness:GetInt()
     self.XHairGapValue = self.XHairGap:GetInt()
     self.XHairSizeValue = self.XHairSize:GetInt()
-    self.XHairRedValue = self.XHairRed:GetInt()
-    self.XHairGreenValue = self.XHairGreen:GetInt()
-    self.XHairBlueValue = self.XHairBlue:GetInt()
-    self.XHairAlphaValue = self.XHairAlpha:GetInt()
+    self.XHairColorValue = string.ToColor(self.XHairColor:GetString())
     self.Updated = true
 end
 
@@ -147,7 +139,7 @@ function CH:DrawCrosshair(x, y)
         self:Update()
     end
 
-    surface.SetDrawColor(self.XHairRedValue, self.XHairGreenValue, self.XHairBlueValue, self.XHairAlphaValue)
+    surface.SetDrawColor(self.XHairColorValue)
     surface.DrawRect(x - (self.XHairThicknessValue / 2), y - (self.XHairSizeValue + self.XHairGapValue / 2), self.XHairThicknessValue, self.XHairSizeValue)
     surface.DrawRect(x - (self.XHairThicknessValue / 2), y + (self.XHairGapValue / 2), self.XHairThicknessValue, self.XHairSizeValue)
     surface.DrawRect(x + (self.XHairGapValue / 2), y - (self.XHairThicknessValue / 2), self.XHairSizeValue, self.XHairThicknessValue)
@@ -158,7 +150,7 @@ hook.Add("HUDPaint", "DrawCustomCrosshair", function()
     local client = LocalPlayer()
 
     -- Is able to draw crosshair
-    if IsValid(client) and client:Health() > 0 and not client:KeyDown(IN_ATTACK2) then
+    if IsValid(client) and client:Health() > 0 and not client:KeyDown(IN_ATTACK2) and client:GetActiveWeapon().DrawCrosshair ~= false then
         CH:DrawCrosshair()
     end
 end)
