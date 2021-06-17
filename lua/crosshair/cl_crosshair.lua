@@ -1,5 +1,4 @@
 -- TODO: Make some things local
--- TODO: Add config to see other players crosshair
 
 CH = {}
 CH.SliderTextColor = Color(200, 200, 200)
@@ -7,6 +6,8 @@ CH.XHairThickness = CreateClientConVar("crosshair_thickness", 2, true, false)
 CH.XHairGap = CreateClientConVar("crosshair_gap", 8, true, false)
 CH.XHairSize = CreateClientConVar("crosshair_size", 8, true, false)
 CH.XHairColor = CreateClientConVar("crosshair_color", string.FromColor(color_white), true, false)
+CH.XHairOutline = CreateClientConVar("crosshair_outline", 0, true, false)
+CH.SeeSpectatorCrosshair = CreateClientConVar("crosshair_spectator", "1", true, true)
 
 function CH:OpenCrosshairCreator()
     local frame = vgui.Create("DFrame")
@@ -34,7 +35,7 @@ function CH:OpenCrosshairCreator()
         surface.SetDrawColor(0, 0, 0, 100)
         surface.DrawRect(0, 0, w, h)
 
-        self:DrawCrosshair(w / 2, h / 2)
+        self:DrawCrosshair(LocalPlayer(), w / 2, h / 2)
     end
 
     local controls = vgui.Create("DPanel", panel)
@@ -74,12 +75,13 @@ function CH:OpenCrosshairCreator()
     list:SetSpaceX(0)
     list:SetSpaceY(4)
 
-    self:AddHeaderToList(list, "Dimensões")
-    self:AddSliderConvarToList(list, "Espessura do traço", 0, 16, "crosshair_thickness")
-    self:AddSliderConvarToList(list, "Abertura interna", 0, 32, "crosshair_gap")
-    self:AddSliderConvarToList(list, "Tamanho do traço", 0, 32, "crosshair_size")
+    self:AddHeaderToList(list, "Dimensions")
+    self:AddSliderConvarToList(list, "Thickness", 0, 16, "crosshair_thickness")
+    self:AddSliderConvarToList(list, "Internal Gap", 0, 32, "crosshair_gap")
+    self:AddSliderConvarToList(list, "Size", 0, 32, "crosshair_size")
+    self:AddSliderConvarToList(list, "Outline", 0, 3, "crosshair_outline")
 
-    self:AddHeaderToList(list, "Cores")
+    self:AddHeaderToList(list, "Color")
     local colorChooser = vgui.Create("DColorCombo")
     colorChooser:SetWide(list:GetWide() - 8)
     colorChooser.OnValueChanged = function(s, color)
@@ -87,6 +89,19 @@ function CH:OpenCrosshairCreator()
         self:Update()
     end
     list:Add(colorChooser)
+
+    self:AddHeaderToList(list, "Configuration")
+    local seeSpectatorCrosshairContainer = vgui.Create("EditablePanel")
+    seeSpectatorCrosshairContainer:SetWide(list:GetWide() - 8)
+    local seeSpectatorCrosshair = vgui.Create("DCheckBox", seeSpectatorCrosshairContainer)
+    seeSpectatorCrosshair.OnChange = function(s, value)
+        RunConsoleCommand("crosshair_spectator", value and "1" or "0")
+    end
+    local seeSpectatorCrosshairLabel = vgui.Create("DLabel", seeSpectatorCrosshairContainer)
+    seeSpectatorCrosshairLabel:SetText("See other players crosshair when spectating")
+    seeSpectatorCrosshairLabel:SetPos(24, 0)
+    seeSpectatorCrosshairLabel:SetWide(list:GetWide() - 8 - 24)
+    list:Add(seeSpectatorCrosshairContainer)
 end
 
 function CH:AddSliderConvarToList(list, text, min, max, convar)
@@ -124,35 +139,64 @@ function CH:Empty()
 end
 
 function CH:Update()
-    self.XHairThicknessValue = self.XHairThickness:GetInt()
-    self.XHairGapValue = self.XHairGap:GetInt()
-    self.XHairSizeValue = self.XHairSize:GetInt()
-    self.XHairColorValue = string.ToColor(self.XHairColor:GetString())
-    self.Updated = true
+    net.Start("RefreshCrosshair")
+        net.WriteInt(self.XHairThickness:GetInt(), 8)
+        net.WriteInt(self.XHairGap:GetInt(), 8)
+        net.WriteInt(self.XHairSize:GetInt(), 8)
+        net.WriteString(self.XHairColor:GetString())
+        net.WriteFloat(self.XHairOutline:GetFloat())
+    net.SendToServer()
 end
 
-function CH:DrawCrosshair(x, y)
+function CH:DrawTicks(ply, x, y, tickness, size, gap, color)
+    surface.SetDrawColor(color)
+    surface.DrawRect(x - (tickness / 2), y - (size + gap / 2), tickness, size)
+    surface.DrawRect(x - (tickness / 2), y + (gap / 2), tickness, size)
+    surface.DrawRect(x + (gap / 2), y - (tickness / 2), size, tickness)
+    surface.DrawRect(x - (size + gap / 2), y - (tickness / 2), size, tickness)
+end
+
+function CH:DrawCrosshair(ply, x, y)
     x = x or ScrW() / 2
     y = y or ScrH() / 2
 
-    if not self.Updated then
-        self:Update()
+    local xtickness = ply:GetNWInt("XHairThickness", self.XHairThickness:GetInt())
+    local gap = ply:GetNWInt("XHairGap", self.XHairGap:GetInt())
+    local size = ply:GetNWInt("XHairSize", self.XHairSize:GetInt())
+    local color = string.ToColor(ply:GetNWString("XHairColor", self.XHairColor:GetString()))
+    local outline = ply:GetNWFloat("XHairOutline", self.XHairOutline:GetFloat())
+
+    if outline > 0.1 then
+        local tickness = xtickness + outline
+        self:DrawTicks(ply, x, y, tickness, size + tickness, gap - tickness, color_black)
     end
 
-    surface.SetDrawColor(self.XHairColorValue)
-    surface.DrawRect(x - (self.XHairThicknessValue / 2), y - (self.XHairSizeValue + self.XHairGapValue / 2), self.XHairThicknessValue, self.XHairSizeValue)
-    surface.DrawRect(x - (self.XHairThicknessValue / 2), y + (self.XHairGapValue / 2), self.XHairThicknessValue, self.XHairSizeValue)
-    surface.DrawRect(x + (self.XHairGapValue / 2), y - (self.XHairThicknessValue / 2), self.XHairSizeValue, self.XHairThicknessValue)
-    surface.DrawRect(x - (self.XHairSizeValue + self.XHairGapValue / 2), y - (self.XHairThicknessValue / 2), self.XHairSizeValue, self.XHairThicknessValue)
+    self:DrawTicks(ply, x, y, xtickness, size, gap, color)
 end
 
 hook.Add("HUDPaint", "DrawCustomCrosshair", function()
     local client = LocalPlayer()
+    local ply = client
+
+    if CH.SeeSpectatorCrosshair:GetBool() and not client:Alive() then
+        local observer = client:GetObserverTarget()
+
+        if IsValid(observer) then
+            ply = observer
+        end
+    end
 
     -- Is able to draw crosshair
-    if IsValid(client) and client:Health() > 0 and not client:KeyDown(IN_ATTACK2) and client:GetActiveWeapon().DrawCrosshair ~= false then
-        CH:DrawCrosshair()
+    if IsValid(ply) and ply:IsPlayer() and ply:Alive() and not client:KeyDown(IN_ATTACK2) then
+        local weapon = ply:GetActiveWeapon()
+        if IsValid(weapon) and weapon.DrawCrosshair ~= false then
+            CH:DrawCrosshair(ply)
+        end
     end
+end)
+
+hook.Add("InitPostEntity", "UpdateServerHud", function()
+    CH:Update()
 end)
 
 hook.Add("HUDShouldDraw", "HideHUD", function(name)
@@ -160,6 +204,6 @@ hook.Add("HUDShouldDraw", "HideHUD", function(name)
     if name == "CHudCrosshair" then return false end
 end)
 
-concommand.Add("open_crosshair_menu", function()
+concommand.Add("crosshair_menu", function()
     CH:OpenCrosshairCreator()
 end)

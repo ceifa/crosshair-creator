@@ -1,0 +1,10 @@
+{
+    "title": "Crosshair Creator",
+    "type": "tool",
+    "tags": ["fun"],
+    "ignore": [
+        "README.md",
+        ".git/*",
+        "image.jpeg"
+    ]
+}
